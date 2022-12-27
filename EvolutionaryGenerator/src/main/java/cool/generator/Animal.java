@@ -1,2 +1,5 @@
-package cool.generator;public class Animal {
+package cool.generator;
+
+public class Animal {
+    
 }
