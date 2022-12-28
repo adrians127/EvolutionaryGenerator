@@ -98,7 +98,7 @@ public class Animal extends MapElement {
         return direction.toString();
     }
 
-    public void mutateGenotype(){
+    public void mutateGenotype() {
         int mutationsNumber = random.nextInt(minMutations, maxMutations);
         if (mutationsRandomness) { //pełna losowość
             for (int i = 0; i < mutationsNumber; i++) {
@@ -106,16 +106,26 @@ public class Animal extends MapElement {
             }
             return;
         }  //1 w góre lub w dół
-        for (int i=0; i<mutationsNumber; i++){
+        for (int i = 0; i < mutationsNumber; i++) {
             int upOrDown = random.nextInt(2);
             int randomIndex = random.nextInt(n);
             if (upOrDown == 0) {
-                genotype.set(randomIndex, (genotype.get(randomIndex)+1)%8);
-            }
-            else {
-                genotype.set(randomIndex, (genotype.get(randomIndex)-1)%8);
+                genotype.set(randomIndex, (genotype.get(randomIndex) + 1) % 8);
+            } else {
+                genotype.set(randomIndex, (genotype.get(randomIndex) - 1) % 8);
             }
         }
+    }
 
+    public int getEnergy() {
+        return energy;
+    }
+
+    public int getAliveFor() {
+        return aliveFor;
+    }
+
+    public int getChildrenCreated() {
+        return childrenCreated;
     }
 }
