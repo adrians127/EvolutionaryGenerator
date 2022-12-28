@@ -1,22 +1,22 @@
 package cool.generator;
+
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Random;
 
-public class Animal {
-    public Coordinates position;
-    public int energy;
-    public List<Integer> genotype = new ArrayList<>();
-    public int n; //długość genotypu
+public class Animal implements IMapElement {
+    private Coordinates position;
+    private int energy;
+    private ArrayList<Integer> genotype = new ArrayList<>();
+    private int n; //długość genotypu
 
-    public int plantsEaten = 0;
+    private int plantsEaten = 0;
     public int childrenCreated = 0;
     public boolean isAlive = true; //w momencie powstania na logike jest żywe
     public int dayOfBirth;
     public int aliveFor = 0;
     public int dayOfDeath;
-    public int direction; //narazie tylko to tu jest
-    public int activeGene;
+    public MoveDirection direction; //narazie tylko to tu jest
+    public int activeGeneIndex;
     public boolean mutationsRandomness = true;
     //true - wariant pełnej losowości //false - lekka korekta (1 w dół lub 1 w góre)
     //dla startowych zwierząt musi być true - bo nie ma genotypów rodziców, od których można przejąć tą wartość
@@ -31,11 +31,11 @@ public class Animal {
     //initialPosition - pozycja wyliczona w klasie mapy - losowa
     //initialEnergy - initial energy określona z parametrów globalnych symulacji
     //N - długość genotypu określona z parametrów globalnych symulacji
-    public Animal(Coordinates initialPosition, int initialEnergy, int N){
+    public Animal(Coordinates initialPosition, int initialEnergy, int n) {
         this.dayOfBirth = 0; //powstał na początku symulacji
         this.position = initialPosition;
         this.energy = initialEnergy;
-        this.n = N;
+        this.n = n;
 
         this.getRandomGenotype();
         this.getRandomDirection();
@@ -45,7 +45,7 @@ public class Animal {
     //RODZĄCE SIĘ ZWIERZĘ
     //mutationsRandomness - zmienna oznaczająca wybrany wariant generowania genotypu
     //day - aktualny dzień symulacji
-    public Animal(Animal strongerParent, Animal weakerParent, boolean mutationsRandomness, int day){
+    public Animal(Animal strongerParent, Animal weakerParent, boolean mutationsRandomness, int day) {
         this.position = strongerParent.position;
         this.mutationsRandomness = mutationsRandomness;
         this.dayOfBirth = day;
@@ -55,46 +55,72 @@ public class Animal {
     }
 
     //ROBOCZE PÓKI NIE MA KLASY DIRECTION
-    public void getRandomDirection(){ //losowy gen z genotypu - niekoniecznie pierwszy
-        this.direction = random.nextInt(8);
+    public void getRandomDirection() { //losowy gen z genotypu - niekoniecznie pierwszy
+        direction = MoveDirection.NORTH.changeDirection(random.nextInt(8));
         //przerobienie na direction czy coś bo to klasa będzie pewnie?
     }
 
-    public void getRandomActiveGene(){ //losowanie pierwszego aktywnego genu i jego pozycji w genotype
-        this.activeGene = random.nextInt(n);
+    public void getRandomActiveGene() { //losowanie pierwszego aktywnego genu i jego pozycji w genotype
+        activeGeneIndex = random.nextInt(n);
     }
 
-    public void getRandomGenotype(){ //w pełni losowy genotyp dla startowych
-        this.genotype = new ArrayList<>();
-        for (int i=0; i<this.n; i++){
-            this.genotype.add(random.nextInt(8));
+    public void getRandomGenotype() { //w pełni losowy genotyp dla startowych
+        genotype = new ArrayList<>();
+        for (int i = 0; i < n; i++) {
+            genotype.add(random.nextInt(8));
         }
     }
 
-    public void inheritGenotype(Animal strongerParent, Animal weakerParent){
+    public void inheritGenotype(Animal strongerParent, Animal weakerParent) {
         //getting genotype
-        int howMuch = Math.round(strongerParent.energy/(strongerParent.energy+weakerParent.energy));
+        int howMuch = Math.round(strongerParent.energy / (strongerParent.energy + weakerParent.energy)) * n;
         int whichSide = random.nextInt(2);
-        if (whichSide == 0){ //lewa strona
-            this.genotype = strongerParent.genotype.subList(0, howMuch);
-//            this.genotype.add(weakerParent.genotype.subList(howMuch, this.n));
-        }
-        else { //prawa strona
-//            this.genotype += weakerParent.genotype.substring(0, this.n - howMuch);
-//            this.genotype += strongerParent.genotype.substring(this.n-howMuch, n);
-        }
-
-        //mutations
-        if (this.mutationsRandomness){ //pełna losowość
-            int mutationsNumber = random.nextInt(minMutations, maxMutations);
-            for (int i=0; i<mutationsNumber; i++){
-//                this.genotype.charAt(random.nextInt(this.n)) = (char) random.nextInt(this.n);
+        if (whichSide == 0) { //lewa strona
+            for (int i = 0; i < howMuch; i++) {
+                genotype.add(strongerParent.genotype.get(i));
+            }
+            for (int i = howMuch; i < n; i++) {
+                genotype.add(weakerParent.genotype.get(i));
+            }
+        } else {
+            for (int i = 0; i < n - howMuch; i++) {
+                genotype.add(weakerParent.genotype.get(i));
+            }
+            for (int i = n - howMuch; i < n; i++) {
+                genotype.add(strongerParent.genotype.get(i));
             }
         }
-        else{ //1 w góre lub w dół
+        //mutations
+        mutateGenotype();
+    }
+
+    public void mutateGenotype(){
+        int mutationsNumber = random.nextInt(minMutations, maxMutations);
+        if (mutationsRandomness) { //pełna losowość
+            for (int i = 0; i < mutationsNumber; i++) {
+                genotype.set(random.nextInt(n), random.nextInt(8));
+            }
             return;
+        }  //1 w góre lub w dół
+        for (int i=0; i<mutationsNumber; i++){
+            int upOrDown = random.nextInt(2);
+            int randomIndex = random.nextInt(n);
+            if (upOrDown == 0) {
+                genotype.set(randomIndex, (genotype.get(randomIndex)+1)%8);
+            }
+            else {
+                genotype.set(randomIndex, (genotype.get(randomIndex)-1)%8);
+            }
         }
     }
 
-}
+    @Override
+    public Coordinates getPosition() {
+        return position;
+    }
 
+    @Override
+    public String getImageSrc() {
+        return null;
+    }
+}
