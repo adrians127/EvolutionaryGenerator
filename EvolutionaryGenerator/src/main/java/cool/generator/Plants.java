@@ -9,5 +9,4 @@ public class Plants extends MapElement {
         return "*";
     }
 
-
 }
