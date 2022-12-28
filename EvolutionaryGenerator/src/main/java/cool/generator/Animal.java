@@ -3,18 +3,17 @@ package cool.generator;
 import java.util.ArrayList;
 import java.util.Random;
 
-public class Animal implements IMapElement {
-    private Coordinates position;
+public class Animal extends MapElement {
     private int energy;
     private ArrayList<Integer> genotype = new ArrayList<>();
     private int n; //długość genotypu
 
     private int plantsEaten = 0;
     public int childrenCreated = 0;
-    public boolean isAlive = true; //w momencie powstania na logike jest żywe
-    public int dayOfBirth;
-    public int aliveFor = 0;
-    public int dayOfDeath;
+    private boolean isAlive = true; //w momencie powstania na logike jest żywe
+    private int dayOfBirth;
+    private int aliveFor = 0;
+    private int dayOfDeath;
     public MoveDirection direction; //narazie tylko to tu jest
     public int activeGeneIndex;
     public boolean mutationsRandomness = true;
@@ -94,6 +93,11 @@ public class Animal implements IMapElement {
         mutateGenotype();
     }
 
+    @Override
+    public String toString() {
+        return direction.toString();
+    }
+
     public void mutateGenotype(){
         int mutationsNumber = random.nextInt(minMutations, maxMutations);
         if (mutationsRandomness) { //pełna losowość
@@ -112,15 +116,6 @@ public class Animal implements IMapElement {
                 genotype.set(randomIndex, (genotype.get(randomIndex)-1)%8);
             }
         }
-    }
 
-    @Override
-    public Coordinates getPosition() {
-        return position;
-    }
-
-    @Override
-    public String getImageSrc() {
-        return null;
     }
 }
