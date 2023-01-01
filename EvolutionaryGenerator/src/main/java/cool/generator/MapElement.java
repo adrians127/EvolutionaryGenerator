@@ -4,7 +4,7 @@ abstract public class MapElement implements IMapElement{
     protected Coordinates position;
     @Override
     public Coordinates getPosition() {
-        return null;
+        return position;
     }
 
     @Override

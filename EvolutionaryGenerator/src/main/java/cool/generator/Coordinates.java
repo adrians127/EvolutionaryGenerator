@@ -10,6 +10,9 @@ public class Coordinates {
         this.x = x;
         this.y = y;
     }
+    public Coordinates addCoordinate(Coordinates coordinates) {
+        return new Coordinates(this.x + coordinates.x, this.y + coordinates.y);
+    }
 
     public int getX() {
         return x;

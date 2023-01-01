@@ -1,15 +1,12 @@
 package cool.generator;
 
+import cool.generator.gui.App;
+import javafx.application.Application;
+
 public class KittiesWorld {
     public static void main(String[] args) {
 
         System.out.println("witajcie kitties");
-
-        MoveDirection north = MoveDirection.NORTH;
-        System.out.println(north);
-        north = north.changeDirection(2);
-        System.out.println(north);
-        north = north.changeDirection(12);
-        System.out.println(north);
+        Application.launch(App.class, args);
     }
 }
