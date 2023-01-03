@@ -33,7 +33,7 @@ public class GuiElementBox {
         int energy = elements.get(0).getEnergy();
         int numberOfAnimals = elements.size();
 
-        if (width >= 33 && height >= 30) {
+        if (width >= 50 && height >= 50) {
             try {
                 Image image = new Image(new FileInputStream(elements.get(0).getImageSrc()));
                 ImageView imageView = new ImageView(image);

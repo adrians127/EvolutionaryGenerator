@@ -13,9 +13,6 @@ import javafx.scene.control.Label;
 import javafx.scene.layout.*;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
-//import com.opencsv.CSVWriter;
-
-import java.awt.*;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -70,18 +67,8 @@ public class MapApplication {
                     mapStage.close();
                     stop();
                 });
-                stopBtn.setOnAction(new EventHandler<ActionEvent>() {
-                    @Override
-                    public void handle(ActionEvent event) {
-                        stop();
-                    }
-                });
-                startBtn.setOnAction(new EventHandler<ActionEvent>() {
-                    @Override
-                    public void handle(ActionEvent event) {
-                        start();
-                    }
-                });
+                stopBtn.setOnAction(event -> stop());
+                startBtn.setOnAction(event -> start());
             }
         }.start();
 
@@ -106,7 +93,7 @@ public class MapApplication {
     }
 
     VBox drawStats() {
-        ArrayList<Integer> value = new ArrayList<>();
+        ArrayList<Integer> value;
         if (!map.popularGenotypes.isEmpty()) value = Collections.max(map.popularGenotypes.entrySet(), Comparator.comparingInt(Map.Entry::getValue)).getKey();
         else value = null;
 

@@ -1,0 +1,17 @@
+width: 10
+height: 10
+energyFromPlant: 10
+dailyPlants: 3
+genotypeLength: 7
+startEnergyForAnimal: 20
+readyToCoupleEnergy: 15
+lossOnCoupleEnergy: 5
+minMutations: 3
+maxMutations: 3
+initialNumberOfPlants: 20
+initialNumberOfAnimals: 20
+delay: 500
+isPortalEnabled: 0
+preferedPlantSpawnToxic: 1
+mutationsRandomness: 0
+moveRandomness: 1
