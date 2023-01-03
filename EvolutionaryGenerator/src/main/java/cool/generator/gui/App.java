@@ -17,6 +17,36 @@ import java.util.concurrent.Executors;
 
 public class App extends Application {
 
+    private boolean saveToCSV = false;
+    private boolean isPortalEnabled;
+
+    // false = zalesione rowniki, true = toksyczne trupy
+    private boolean preferedPlantSpawnToxic;
+
+    //true - wariant pełnej losowości //false - lekka korekta (1 w dół lub 1 w góre)
+    //dla startowych zwierząt musi być true - bo nie ma genotypów rodziców, od których można przejąć tą wartość
+    private boolean mutationsRandomness;
+    private boolean moveRandomness;
+
+    private int width;
+    private int height;
+    private int energyFromPlant;
+    private int dailyPlants;
+    private int genotypeLength;
+    private int startEnergyForAnimal;
+    private int readyToCoupleEnergy;
+    private int lossOnCoupleEnergy;
+    private int minMutations;
+    private int maxMutations;
+
+    private int initialNumberOfPlants;
+    private int initialNumberOfAnimals;
+    private final int sizeOfThreads = 5;
+    private int index = 0;
+    private Thread[] threads = new Thread[sizeOfThreads];
+
+    private int delay;
+
     @Override
     public void start(Stage primaryStage) throws Exception {
         initialMenu(primaryStage);
@@ -172,20 +202,213 @@ public class App extends Application {
         addStyles(elementBox);
         menu.getChildren().add(elementBox);
 
+        elementBox = new HBox();
+        elementLabel = new Label("Animation delay: ");
+        TextField delayInput = new TextField();
+        delayInput.setMaxWidth(100);
+        elementBox.getChildren().addAll(elementLabel, delayInput);
+        addStyles(elementBox);
+        menu.getChildren().add(elementBox);
+
+        elementBox = new HBox();
+        elementLabel = new Label("Save statistics to CSV file: ");
+        CheckBox csvCheckbox = new CheckBox();
+        elementBox.getChildren().addAll(elementLabel, csvCheckbox);
+        addStyles(elementBox);
+        menu.getChildren().add(elementBox);
 
         menu.setAlignment(Pos.CENTER);
 
 
-        Label newLabel = new Label("siema");
-        menu.getChildren().add(newLabel);
-
         Button submitBtn = new Button("Start");
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle("PROBLEM!");
         submitBtn.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
-                if (heightInput.getText() != null){
-                    newLabel.setText(heightInput.getText());
+                try {
+                    alert.setContentText(" ");
+                    height = Integer.parseInt(heightInput.getText());
+                    if (height > 500 || height <= 0){
+                        alert.setContentText("Too big value or smaller than 1");
+                        throw new Exception();
+                    }
+                } catch (Exception e) {
+                    alert.setHeaderText("Give validate height!");
+                    alert.showAndWait();
+                    return;
                 }
+
+                try {
+                    alert.setContentText(" ");
+                    width = Integer.parseInt(widthInput.getText());
+                    if (width > 500 || width <= 0){
+                        alert.setContentText("Too big value or smaller than 1");
+                        throw new Exception();
+                    }
+                } catch (Exception e) {
+                    alert.setHeaderText("Give validate width!");
+                    alert.showAndWait();
+                    return;
+                }
+
+                try {
+                    alert.setContentText(" ");
+                    initialNumberOfPlants = Integer.parseInt(initialNumberOfPlantsInput.getText());
+                    if (initialNumberOfPlants < 0){
+                        alert.setContentText("Value smaller than 0");
+                        throw new Exception();
+                    }
+                } catch (Exception e) {
+                    alert.setHeaderText("Give validate initial number of plants!");
+                    alert.showAndWait();
+                    return;
+                }
+
+                try {
+                    alert.setContentText(" ");
+                    initialNumberOfAnimals = Integer.parseInt(initialNumberOfAnimalsInput.getText());
+                    if (initialNumberOfAnimals < 0){
+                        throw new Exception();
+                    }
+                } catch (Exception e) {
+                    alert.setHeaderText("Give validate initial number of animals!");
+                    alert.showAndWait();
+                    return;
+                }
+
+                try {
+                    alert.setContentText(" ");
+                    startEnergyForAnimal = Integer.parseInt(initialAnimalsEnergyInput.getText());
+                    if (startEnergyForAnimal <= 0){
+                        throw new Exception();
+                    }
+                } catch (Exception e) {
+                    alert.setHeaderText("Give validate start energy for animal!");
+                    alert.showAndWait();
+                    return;
+                }
+
+                try {
+                    alert.setContentText(" ");
+                    dailyPlants = Integer.parseInt(dailySpawningPlantsInput.getText());
+                    if (dailyPlants < 0) {
+                        throw new Exception();
+                    }
+                } catch (Exception e) {
+                    alert.setHeaderText("Give validate daily spawning plants number!");
+                    alert.showAndWait();
+                    return;
+                }
+
+                try {
+                    alert.setContentText(" ");
+                    energyFromPlant = Integer.parseInt(energyFromPlantsInput.getText());
+                    if (energyFromPlant < 0){
+                        throw new Exception();
+                    }
+                } catch (Exception e) {
+                    alert.setHeaderText("Give validate energy from eating plants!");
+                    alert.showAndWait();
+                    return;
+                }
+
+                try {
+                    alert.setContentText(" ");
+                    readyToCoupleEnergy = Integer.parseInt(readyToCoupleEnergyInput.getText());
+                    if (readyToCoupleEnergy < 0) {
+                        alert.setContentText("Ready to couple energy must be greater or equal to 0");
+                        throw new Exception();
+                    }
+                } catch (Exception e) {
+                    alert.setHeaderText("Give validate ready to couple energy!");
+                    alert.showAndWait();
+                    return;
+                }
+
+                try {
+                    alert.setContentText(" ");
+                    lossOnCoupleEnergy = Integer.parseInt(energyLostOnCopulationInput.getText());
+                    if (readyToCoupleEnergy < lossOnCoupleEnergy) {
+                        alert.setContentText("Ready to couple energy must be greater or equal" +
+                                " than loss on couple energy");
+                        throw new Exception();
+                    } else if (lossOnCoupleEnergy < 0){
+                        alert.setContentText("Loss on couple energy can't be smaller than 0");
+                        throw new Exception();
+                    }
+                } catch (Exception e) {
+                    alert.setHeaderText("Give validate energy lost on copulation!");
+                    alert.showAndWait();
+                    return;
+                }
+
+                try {
+                    alert.setContentText(" ");
+                    lossOnCoupleEnergy = Integer.parseInt(energyLostOnCopulationInput.getText());
+                } catch (Exception e) {
+                    alert.setHeaderText("Give validate energy lost on copulation!");
+                    alert.showAndWait();
+                    return;
+                }
+
+                try {
+                    alert.setContentText(" ");
+                    minMutations = Integer.parseInt(minMutationsInput.getText());
+                    if (minMutations < 0){
+                        throw new Exception();
+                    }
+                } catch (Exception e) {
+                    alert.setHeaderText("Give validate minimum number of mutations!");
+                    alert.showAndWait();
+                    return;
+                }
+
+                try {
+                    alert.setContentText(" ");
+                    maxMutations = Integer.parseInt(maxMutationsInput.getText());
+                    if (maxMutations < 0){
+                        throw new Exception();
+                    } else if (maxMutations < minMutations){
+                        alert.setContentText("Max mutations can't be smaller than minimal number of mutations");
+                        throw new Exception();
+                    }
+                } catch (Exception e) {
+                    alert.setHeaderText("Give validate maximum number of mutations!");
+                    alert.showAndWait();
+                    return;
+                }
+
+                try {
+                    alert.setContentText(" ");
+                    genotypeLength = Integer.parseInt(genotypeLengthInput.getText());
+                    if (genotypeLength <= 0){
+                        throw new Exception();
+                    }
+                } catch (Exception e) {
+                    alert.setHeaderText("Give validate genotype length!");
+                    alert.showAndWait();
+                    return;
+                }
+
+                try {
+                    alert.setContentText(" ");
+                    delay = Integer.parseInt(delayInput.getText());
+                    if (delay < 5){
+                        throw new Exception();
+                    }
+                } catch (Exception e){
+                    alert.setHeaderText("Give validate delay!");
+                    alert.showAndWait();
+                    return;
+                }
+
+                preferedPlantSpawnToxic = plantsCheckBox.isSelected();
+                mutationsRandomness = mutationsCheckBox.isSelected();
+                isPortalEnabled = mapCheckBox.isSelected();
+                moveRandomness = moveCheckBox.isSelected();
+                saveToCSV = csvCheckbox.isSelected();
+                setMap();
             }
         });
 
@@ -194,22 +417,14 @@ public class App extends Application {
         stage.setScene(scene);
     }
 
-    private VBox mapProperties(){
-        VBox box = new VBox();
-
-        //height
-        HBox elementBox = new HBox();
-        Label label = new Label("Map height: ");
-        TextField heightInput = new TextField();
-        heightInput.setMaxWidth(100);
-        elementBox.getChildren().addAll(label, heightInput);
-        box.getChildren().add(elementBox);
-        return box;
-    }
-
     private void setMap() {
-        MapApplication application = new MapApplication();
-        WorldMap map = new WorldMap();
+        MapApplication application = new MapApplication(delay, saveToCSV);
+        WorldMap map = new WorldMap(
+                width, height, initialNumberOfPlants, energyFromPlant,
+                dailyPlants, initialNumberOfAnimals, startEnergyForAnimal, readyToCoupleEnergy,
+                lossOnCoupleEnergy, minMutations, maxMutations, mutationsRandomness, genotypeLength,
+                moveRandomness, isPortalEnabled, preferedPlantSpawnToxic
+        );
         application.run(map);
     }
 

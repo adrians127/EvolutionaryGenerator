@@ -9,13 +9,13 @@ public class Animal extends MapElement {
     private int n; //długość genotypu
 
     private int plantsEaten = 0;
-    public int childrenCreated = 0;
+    private int childrenCreated = 0;
     private boolean isAlive = true; //w momencie powstania na logike jest żywe
     private int dayOfBirth;
     private int aliveFor = 0;
     private int dayOfDeath;
     public MoveDirection direction; //narazie tylko to tu jest
-    public int activeGeneIndex;
+    private int activeGeneIndex;
 
     private final WorldMap map;
 
@@ -53,7 +53,6 @@ public class Animal extends MapElement {
         this.energy = energy;
     }
 
-    //ROBOCZE PÓKI NIE MA KLASY DIRECTION
     public void getRandomDirection() { //losowy gen z genotypu - niekoniecznie pierwszy
         direction = MoveDirection.NORTH.changeDirection(random.nextInt(8));
     }
@@ -156,7 +155,7 @@ public class Animal extends MapElement {
         if (map.isMoveRandomness()) {
             random = new Random();
             int lottery = random.nextInt(5);
-            if (lottery == 0) {
+            if (lottery == 1) {
                 getRandomActiveGene();
                 return;
             }
@@ -182,5 +181,32 @@ public class Animal extends MapElement {
 
     public int getChildrenCreated() {
         return childrenCreated;
+    }
+
+    public int getPlantsEaten() {
+        return plantsEaten;
+    }
+
+    public void addPlantsEaten(){
+        plantsEaten++;
+    }
+
+    public void addChildrenCreated(){
+        childrenCreated++;
+    }
+
+    public boolean isAlive() {
+        return isAlive;
+    }
+
+    public int getDayOfDeath() {
+        return dayOfDeath;
+    }
+    public void addDay(){
+        aliveFor++;
+    }
+
+    public int getActiveGeneIndex() {
+        return activeGeneIndex;
     }
 }

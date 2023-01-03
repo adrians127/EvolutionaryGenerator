@@ -1,6 +1,7 @@
 package cool.generator;
 
 import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class WorldMap {
@@ -47,6 +48,13 @@ public class WorldMap {
 
     public int aliveAnimalsNumber;
 
+    private double averageAliveEnergy = 0;
+    private double averageDeadEnergy = 0;
+    private int deadAnimalsNumber = 0;
+
+    public HashMap<ArrayList<Integer>, Integer> popularGenotypes = new HashMap<>();
+    HashMap<Coordinates, Integer> deathMap = new HashMap<>();
+
     public WorldMap() {
         this.dailyPlants = 1;
         this.height = 25;
@@ -73,7 +81,7 @@ public class WorldMap {
                     boolean moveRandomness, boolean isPortalEnabled, boolean preferedPlantSpawn) {
         this.isPortalEnabled = isPortalEnabled;
         this.moveRandomness = moveRandomness;
-
+        this.preferedPlantSpawnToxic = preferedPlantSpawn;
         this.width = width;
         this.height = height;
         this.energyFromPlant = energyFromPlant;
@@ -86,15 +94,22 @@ public class WorldMap {
         this.mutationsRandomness = mutationsRandomness;
         this.genotypeLength = genotypeLength;
         this.simulationDays = 0;
+        initialPlace(initialNumberOfAnimals, initialNumberOfPlants);
+        for (int x = 0; x < width; x++){
+            for (int y = 0; y < height; y++){
+                deathMap.put(new Coordinates(x,y), 0);
+            }
+        }
     }
 
-    public void calculateEmptyFields() {
+    private void calculateEmptyFields() {
         Set<Coordinates> takenFields = new HashSet<>(animals.keySet());
         takenFields.addAll(plants.keySet());
         emptyFields = height * width - takenFields.size();
     }
 
     void initialPlace(int initialNumberOfAnimals, int initialNumberOfPlants) {
+        //mapa
         int row = (int) Math.round(height * 0.2);
         int centerStart = (height - row) / 2;
         for (int y = 0; y < centerStart; y++) {
@@ -113,6 +128,7 @@ public class WorldMap {
             }
         }
 
+        //rośliny
         int i = 0;
         while (i < initialNumberOfPlants && plants.size() < (width * height)) {
             Random random = new Random();
@@ -123,6 +139,8 @@ public class WorldMap {
                 i++;
             }
         }
+
+        //zwierzeta
         for (i = 0; i < initialNumberOfAnimals; i++) {
             Random random = new Random();
             int x = random.nextInt(width);
@@ -131,6 +149,7 @@ public class WorldMap {
             placeAnimal(animal.getPosition(), animal);
         }
         aliveAnimalsNumber = initialNumberOfAnimals;
+        calculatePopularGenotypes();
     }
 
     public boolean placePlant(Plant plant) {
@@ -171,9 +190,63 @@ public class WorldMap {
         placePlants();
         endOfDay();
     }
-
     private void changePlantFields() {
+        TreeMap <Integer, ArrayList<Coordinates>> map = new TreeMap<>();
+        for (Map.Entry<Coordinates, Integer> entry: deathMap.entrySet()){
+            int value = entry.getValue();
+            Coordinates key = entry.getKey();
+            if (map.get(value) == null){
+                ArrayList<Coordinates> temp = new ArrayList<>();
+                temp.add(key);
+                map.put(value, temp);
+            } else {
+                ArrayList<Coordinates> temp = map.get(value);
+                temp.add(key);
+                map.put(value, temp);
+            }
+        }
+        int maxIndex = (int) (width * height * 0.2);
+        int index = 0;
+        int value = 0;
+        for (int x = 0; x < width; x++){
+            for (int y = 0; y < height; y++){
+                mapForPlants.put(new Coordinates(x,y), false);
+            }
+        }
+        while (index < maxIndex){
+            ArrayList<Coordinates> coordinates = map.get(value);
+            if (coordinates == null) {
+                value++;
+                continue;
+            }
+            for (Coordinates at : coordinates){
+                mapForPlants.put(at, true);
+                if (++index >= maxIndex) break;
+            }
+            value++;
+        }
 
+    }
+
+    private void changeAverageEnergy(){
+        int sum = 0;
+        for (int x = 0; x < width; x++){
+            for (int y = 0; y < width; y++){
+                Coordinates position = new Coordinates(x,y);
+                ArrayList<Animal> animalsAtPosition = animalsAt(position);
+                if (animalsAtPosition != null){
+                    for (Animal animal : animalsAtPosition){
+                        sum += animal.getEnergy();
+                    }
+                }
+            }
+        }
+        averageAliveEnergy = (double) sum / (double) aliveAnimalsNumber;
+    }
+
+    private void changeAverageDeadEnergy(Animal animal){
+        deadAnimalsNumber++;
+        averageDeadEnergy = ((averageDeadEnergy) * (deadAnimalsNumber-1) + animal.getAliveFor()) / deadAnimalsNumber;
     }
 
     //pierwszy cykl
@@ -187,6 +260,7 @@ public class WorldMap {
                 }
                 animalsAtPosition.removeIf(animal -> {
                     if (animal.death()){
+                        changeAverageDeadEnergy(animal);
                         if (deathsOnFields.containsKey(animal.getPosition())) {
                             int temp = deathsOnFields.get(animal.getPosition()) + 1;
                             deathsOnFields.remove(animal.getPosition());
@@ -195,16 +269,19 @@ public class WorldMap {
                             deathsOnFields.put(animal.getPosition(), 1);
                         }
                         aliveAnimalsNumber -= 1;
+                        deathMap.put(position, deathMap.get(position) + 1);
                         return true;
                     }
                     return false;
                 });//we sprawdz jak cos
             }
         }
+        changeAverageEnergy();
         if (preferedPlantSpawnToxic) {
             changePlantFields();
         }
         calculateEmptyFields();
+        calculatePopularGenotypes();
     }
 
     public void draw() {
@@ -266,10 +343,12 @@ public class WorldMap {
                 Coordinates position = new Coordinates(x, y);
                 if (animals.get(position) != null && plants.get(position) != null) {
                     animals.get(position).get(0).changeEnergy(energyFromPlant);
+                    animals.get(position).get(0).addPlantsEaten();
                     plants.remove(position);
                 }
             }
         }
+        changeAverageEnergy();
         calculateEmptyFields();
     }
 
@@ -288,13 +367,16 @@ public class WorldMap {
                             placeAnimal(animal);
                             animalsAtPosition.get(i).changeEnergy(lossOnCoupleEnergy * -1);
                             animalsAtPosition.get(i + 1).changeEnergy(lossOnCoupleEnergy * -1);
+                            animalsAtPosition.get(i).addChildrenCreated();
+                            animalsAtPosition.get(i + 1).addChildrenCreated();
                             aliveAnimalsNumber += 1;
                         }
                     }
                 }
             }
         }
-        System.out.println(this.animals.size());
+        changeAverageEnergy();
+        calculatePopularGenotypes();
     }
 
     private boolean placePlantLottery(Coordinates position) {
@@ -331,6 +413,23 @@ public class WorldMap {
                 if (animalsAtPosition != null) {
                     for (Animal animal : animalsAtPosition) {
                         animal.changeEnergy(-1);
+                        animal.addDay();
+                    }
+                }
+            }
+        }
+        changeAverageEnergy();
+    }
+
+    public void calculatePopularGenotypes(){
+        popularGenotypes = new HashMap<>();
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+                Coordinates position = new Coordinates(x,y);
+                if (animals.get(position) != null){
+                    for (Animal animal : animals.get(position)){
+                        ArrayList<Integer> at = animal.getGenotype();
+                        popularGenotypes.put(at, popularGenotypes.getOrDefault(at, 1) + 1);
                     }
                 }
             }
@@ -367,5 +466,13 @@ public class WorldMap {
 
     public int getSimulationDays() {
         return simulationDays;
+    }
+
+    public double getAverageAliveEnergy() {
+        return averageAliveEnergy;
+    }
+
+    public double getAverageDeadEnergy() {
+        return averageDeadEnergy;
     }
 }
